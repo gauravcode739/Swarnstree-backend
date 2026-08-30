@@ -24,7 +24,10 @@ export const createCouponValidator = Joi.object({
 export const createReviewValidator = Joi.object({
   product: Joi.string().required(),
   rating: Joi.number().min(1).max(5).required(),
-  comment: Joi.string().optional()
+  comment: Joi.string().allow('', null).optional(),
+  reviewerName: Joi.string().allow('', null).optional(),
+  isApproved: Joi.boolean().optional(),
+  images: Joi.any().optional()
 });
 
 // Shipping

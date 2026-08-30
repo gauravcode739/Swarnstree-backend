@@ -2,18 +2,23 @@ import Review from '../models/Review.js';
 
 export const createReview = async (req, res) => {
   try {
-    const { product, rating, comment, reviewerName, isApproved } = req.body;
+    const { product, rating, comment, reviewerName, isApproved } = req.body || {};
     
     // Collect uploaded image URLs (from multipart upload)
     const uploadedImages = req.files && req.files.length > 0
       ? req.files.map(f => f.path)
       : [];
 
-    let reviewData = { product, rating, comment, images: uploadedImages };
+    let reviewData = { 
+      product, 
+      rating: Number(rating) || 5, 
+      comment: comment || '', 
+      images: uploadedImages 
+    };
     
-    if (req.userRole === 'admin') {
+    if (req.userRole === 'admin' || reviewerName) {
       reviewData.reviewerName = reviewerName || 'Admin';
-      reviewData.isApproved = isApproved !== undefined ? isApproved : true;
+      reviewData.isApproved = isApproved !== undefined ? (isApproved === 'true' || isApproved === true) : true;
     } else {
       reviewData.user = req.userId;
       reviewData.isApproved = false;
@@ -52,7 +57,7 @@ export const getAllReviews = async (req, res) => {
 export const updateReview = async (req, res) => {
   try {
     const { id } = req.params;
-    const { isApproved, rating, comment, reviewerName } = req.body;
+    const { isApproved, rating, comment, reviewerName } = req.body || {};
 
     const review = await Review.findById(id);
     if (!review) {
