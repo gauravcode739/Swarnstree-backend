@@ -2,17 +2,21 @@ import Review from '../models/Review.js';
 
 export const createReview = async (req, res) => {
   try {
-    const { product, rating, comment, reviewerName, isApproved, images } = req.body;
+    const { product, rating, comment, reviewerName, isApproved } = req.body;
     
-    // If admin is creating manually, they might provide reviewerName instead of being a logged-in User
-    let reviewData = { product, rating, comment, images: images || [] };
+    // Collect uploaded image URLs (from multipart upload)
+    const uploadedImages = req.files && req.files.length > 0
+      ? req.files.map(f => f.path)
+      : [];
+
+    let reviewData = { product, rating, comment, images: uploadedImages };
     
     if (req.userRole === 'admin') {
       reviewData.reviewerName = reviewerName || 'Admin';
-      reviewData.isApproved = isApproved !== undefined ? isApproved : true; // Admin reviews are approved by default
+      reviewData.isApproved = isApproved !== undefined ? isApproved : true;
     } else {
       reviewData.user = req.userId;
-      reviewData.isApproved = false; // User reviews need approval
+      reviewData.isApproved = false;
     }
 
     const review = new Review(reviewData);
@@ -60,8 +64,22 @@ export const updateReview = async (req, res) => {
     if (comment !== undefined) review.comment = comment;
     if (reviewerName !== undefined) review.reviewerName = reviewerName;
 
+    // Handle image updates
+    if (req.body.existingImages !== undefined) {
+      // Admin sent back which existing images to keep
+      try {
+        review.images = JSON.parse(req.body.existingImages);
+      } catch {
+        review.images = [];
+      }
+    }
+    if (req.files && req.files.length > 0) {
+      const newImageUrls = req.files.map(f => f.path);
+      review.images = [...(review.images || []), ...newImageUrls];
+    }
+
     await review.save();
-    res.json(review);
+    res.json({ success: true, data: review });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
