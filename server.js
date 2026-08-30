@@ -16,7 +16,14 @@ const app = express();
 app.use(helmet());
 app.use(cors());
 
-// Rate limiting
+// Rate limiting & Cache Control
+app.use('/api', (req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  next();
+});
+
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5000, // Increased limit to prevent issues during heavy usage
